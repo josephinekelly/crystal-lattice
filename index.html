@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Band Formation in Solids - Interactive Simulation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: #1a365d;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #2c5282;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 8px;
+            margin-top: 40px;
+            font-size: 20px;
+        }
+        .simulation-box {
+            background: #fafafa;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 25px;
+            background: #edf2f7;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .control-row label {
+            font-weight: 600;
+            min-width: 200px;
+            color: #4a5568;
+        }
+        .control-row input[type="range"] {
+            flex: 1;
+            cursor: pointer;
+        }
+        .control-value {
+            min-width: 40px;
+            font-family: monospace;
+            font-weight: bold;
+            background: #fff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e0;
+            text-align: center;
+        }
+        .canvas-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            overflow-x: auto;
+        }
+        canvas {
+            background: #ffffff;
+            display: block;
+        }
+        .description {
+            font-size: 14px;
+            color: #64748b;
+            line-height: 1.6;
+            margin-top: 15px;
+        }
+        @media (max-width: 850px) {
+            .canvas-container {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Interactive Physics Simulation: Band Formation in Solids</h1>
+
+    <!-- SIMULATION 1: TWO ATOM SPLITTING -->
+    <h2>1. Two-Atom Energy Level Splitting</h2>
+    <div class="simulation-box">
+        <div class="controls">
+            <div class="control-row">
+                <label for="sim1-dist">Interatomic Distance (r):</label>
+                <input type="range" id="sim1-dist" min="0.5" max="6.0" step="0.05" value="4.0">
+                <span id="sim1-dist-val" class="control-value">4.00</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas1" width="700" height="400"></canvas>
+        </div>
+        <div class="description">
+            <strong>Instructions & Physics:</strong> Use the slider to move the two isolated atoms closer together. As distance decreases, their orbital wavefunctions begin to overlap. This coupling ($t$) splits the single degenerate atomic energy level ($\epsilon$) into a lower-energy <strong>bonding state</strong> ($E = \epsilon - t$) and a higher-energy <strong>antibonding state</strong> ($E = \epsilon + t$).
+        </div>
+    </div>
+
+    <!-- SIMULATION 2: MULTI-ATOM BAND FORMATION -->
+    <h2>2. Multi-Atom Band Formation & Band Gap Evolution</h2>
+    <div class="simulation-box">
+        <div class="controls">
+            <div class="control-row">
+                <label for="sim2-atoms">Number of Atoms (N):</label>
+                <input type="range" id="sim2-atoms" min="3" max="10" step="1" value="4">
+                <span id="sim2-atoms-val" class="control-value">4</span>
+            </div>
+            <div class="control-row">
+                <label for="sim2-dist">Atomic Spacing (r):</label>
+                <input type="range" id="sim2-dist" min="1.5" max="5.5" step="0.05" value="3.5">
+                <span id="sim2-dist-val" class="control-value">3.50</span>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="canvas2" width="950" height="480"></canvas>
+        </div>
+        <div class="description">
+            <strong>Instructions & Physics:</strong> 
+            <ul>
+                <li><strong>Increase N (Atoms):</strong> Watch the lattice populate from left to right. More atoms mean more wavefunctions overlapping, which increases the number of allowed energy states in the middle diagram.</li>
+                <li><strong>Decrease Spacing (r):</strong> As atoms move closer, the coupling strength scales up sharply, causing the allowed energy levels to spread out vertically into a band. When they get close enough ($r < 3.0$), the states split into two separate groups: a lower <strong>Valence Band</strong> (green) and an upper <strong>Conduction Band</strong> (red), creating a forbidden <strong>Band Gap</strong>. This trajectory is tracked dynamically by the blue dashed indicator line on the right-hand Energy vs. Spacing graph.</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================================
+// SIMULATION 1: TWO-ATOM SPLITTING CODE
+// ============================================================================
+const canvas1 = document.getElementById('canvas1');
+const ctx1 = canvas1.getContext('2d');
+const slider1Dist = document.getElementById('sim1-dist');
+const val1Dist = document.getElementById('sim1-dist-val');
+
+function drawSimulation1() {
+    const r = parseFloat(slider1Dist.value);
+    val1Dist.textContent = r.toFixed(2);
+    
+    ctx1.clearRect(0, 0, canvas1.width, canvas1.height);
+    
+    // --- Top Subplot: Atoms ---
+    const topY = 70;
+    const centerX = canvas1.width / 2;
+    // Map distance to pixels (scale factor ~ 40)
+    const pDist = r * 45;
+    const x1 = centerX - pDist / 2;
+    const x2 = centerX + pDist / 2;
+    
+    // Draw Electron Clouds (Gradients)
+    function drawCloud(x, y) {
+        let grad = ctx1.createRadialGradient(x, y, 2, x, y, 60);
+        grad.addColorStop(0, 'rgba(100, 149, 237, 0.6)');
+        grad.addColorStop(0.4, 'rgba(100, 149, 237, 0.3)');
+        grad.addColorStop(1, 'rgba(100, 149, 237, 0)');
+        ctx1.fillStyle = grad;
+        ctx1.beginPath();
+        ctx1.arc(x, y, 60, 0, Math.PI * 2);
+        ctx1.fill();
+        
+        // Nucleus
+        ctx1.fillStyle = 'darkblue';
+        ctx1.beginPath();
+        ctx1.arc(x, y, 5, 0, Math.PI * 2);
+        ctx1.fill();
+    }
+    drawCloud(x1, topY);
+    drawCloud(x2, topY);
+    
+    // Subplot 1 Title
+    ctx1.fillStyle = '#333';
+    ctx1.font = 'bold 13px sans-serif';
+    ctx1.textAlign = 'center';
+    ctx1.fillText("Atomic Spacing Visualization", centerX, topY - 45);
+    
+    // --- Bottom Subplot: Molecular Orbitals ---
+    const midY = 270;
+    const epsilon = 0; // Reference center
+    // Coupling t models wavefunction decay exponentially
+    const t = 75 * Math.exp(-r / 2.5);
+    
+    const eAnti = midY - t;
+    const eBond = midY + t;
+    
+    // Grid Lines
+    ctx1.strokeStyle = '#e2e8f0';
+    ctx1.lineWidth = 1;
+    ctx1.beginPath();
+    ctx1.moveTo(50, midY); ctx1.lineTo(650, midY);
+    ctx1.stroke();
+    
+    // Energy Axis Label
+    ctx1.save();
+    ctx1.translate(30, midY);
+    ctx1.rotate(-Math.PI / 2);
+    ctx1.fillStyle = '#4a5568';
+    ctx1.font = '12px sans-serif';
+    ctx1.fillText("Electron Energy (E)", 0, 0);
+    ctx1.restore();
+    
+    // Left & Right Isolated Atom Levels
+    ctx1.strokeStyle = 'black';
+    ctx1.lineWidth = 3;
+    // Left Level
+    ctx1.beginPath(); ctx1.moveTo(100, midY); ctx1.lineTo(180, midY); ctx1.stroke();
+    // Right Level
+    ctx1.beginPath(); ctx1.moveTo(520, midY); ctx1.lineTo(600, midY); ctx1.stroke();
+    
+    // Central Split Levels
+    // Antibonding (Red)
+    ctx1.strokeStyle = '#e53e3e';
+    ctx1.lineWidth = 4;
+    ctx1.beginPath(); ctx1.moveTo(300, eAnti); ctx1.lineTo(400, eAnti); ctx1.stroke();
+    // Bonding (Blue)
+    ctx1.strokeStyle = '#3182ce';
+    ctx1.beginPath(); ctx1.moveTo(300, eBond); ctx1.lineTo(400, eBond); ctx1.stroke();
+    
+    // Connector Dashed Lines
+    ctx1.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx1.lineWidth = 1;
+    ctx1.setLineDash([4, 4]);
+    
+    // Left connections
+    ctx1.beginPath();
+    ctx1.moveTo(180, midY); ctx1.lineTo(300, eAnti);
+    ctx1.moveTo(180, midY); ctx1.lineTo(300, eBond);
+    // Right connections
+    ctx1.moveTo(520, midY); ctx1.lineTo(400, eAnti);
+    ctx1.moveTo(520, midY); ctx1.lineTo(400, eBond);
+    ctx1.stroke();
+    ctx1.setLineDash([]); // Reset
+    
+    // Labels
+    ctx1.fillStyle = '#e53e3e';
+    ctx1.font = 'bold 12px sans-serif';
+    ctx1.textAlign = 'left';
+    ctx1.fillText(`Antibonding (E = ε + t)`, 415, eAnti + 4);
+    
+    ctx1.fillStyle = '#3182ce';
+    ctx1.fillText(`Bonding (E = ε - t)`, 415, eBond + 4);
+    
+    ctx1.fillStyle = 'black';
+    ctx1.textAlign = 'right';
+    ctx1.fillText("Isolated Level (ε)", 90, midY + 4);
+}
+
+slider1Dist.addEventListener('input', drawSimulation1);
+drawSimulation1();
+
+
+// ============================================================================
+// SIMULATION 2: MULTI-ATOM BAND FORMATION CODE
+// ============================================================================
+const canvas2 = document.getElementById('canvas2');
+const ctx2 = canvas2.getContext('2d');
+const slider2Atoms = document.getElementById('sim2-atoms');
+const slider2Dist = document.getElementById('sim2-dist');
+const val2Atoms = document.getElementById('sim2-atoms-val');
+const val2Dist = document.getElementById('sim2-dist-val');
+
+function computePhysics(r) {
+    const t = 2.2 * Math.exp(-r / 2.0);
+    const gap = (r < 3.0) ? 2.0 / (1.0 + Math.exp(2.0 * (r - 2.2))) : 0.0;
+    return { t, gap };
+}
+
+function drawSimulation2() {
+    const N = parseInt(slider2Atoms.value);
+    const r = parseFloat(slider2Dist.value);
+    
+    val2Atoms.textContent = N;
+    val2Dist.textContent = r.toFixed(2);
+    
+    ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+    
+    // ----------------------------------------------------
+    // Subplot 1: Atom Chain (Top Left Area)
+    // ----------------------------------------------------
+    const chainY = 60;
+    const max_x = 10 * 5.5; // Bounds matching Python
+    
+    // Mapping math space to canvas pixels for atoms view
+    function mapX(atomX) {
+        // map domain [-2, 57] to pixel range [40, 910]
+        return 40 + (atomX - (-2)) * (870 / (max_x + 4));
+    }
+    
+    // Draw continuous background cloud approximation
+    ctx2.save();
+    for(let step=0; step<950; step+=2) {
+        // Reverse engineer physics x value from pixel step
+        let rx = -2 + (step - 40) * (max_x + 4) / 870;
+        let yDensity = 0;
+        for(let i=0; i<N; i++) {
+            let pos = i * r;
+            yDensity += Math.exp(-Math.pow(rx - pos, 2) / 0.4);
+        }
+        if (yDensity > 0.01) {
+            ctx2.fillStyle = `rgba(100, 149, 237, ${Math.min(yDensity * 0.25, 0.45)})`;
+            ctx2.fillRect(step, chainY - yDensity*18, 2, yDensity*36);
+        }
+    }
+    ctx2.restore();
+    
+    // Draw Atom Cores
+    for(let i=0; i<N; i++) {
+        let pos = i * r;
+        let cx = mapX(pos);
+        ctx2.fillStyle = 'darkblue';
+        ctx2.beginPath();
+        ctx2.arc(cx, chainY, 6, 0, Math.PI * 2);
+        ctx2.fill();
+    }
+    
+    ctx2.fillStyle = '#1a365d';
+    ctx2.font = 'bold 13px sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.fillText(`Linear Crystal Lattice Array (Total Atoms: ${N})`, canvas2.width / 2, 22);
+    
+    
+    // Physics parameters for levels
+    const { t, gap } = computePhysics(r);
+    const baseMidY = 310;
+    const yScaleFactor = 45; // scale factor for energy units to pixels
+    
+    // Calculate finite tight-binding chain energy levels
+    let levels = [];
+    for(let m=1; m<=N; m++) {
+        let energy = -2 * t * Math.cos((Math.PI * m) / (N + 1));
+        levels.push(energy);
+    }
+    
+    // ----------------------------------------------------
+    // Subplot 2: Energy Band Splitting Manifold (Bottom Left)
+    // ----------------------------------------------------
+    const bandWidth = 140;
+    const bandCenterX = 180;
+    
+    // Subplot 2 borders/grid
+    ctx2.strokeStyle = '#e2e8f0';
+    ctx2.lineWidth = 1;
+    ctx2.strokeRect(60, 140, 240, 310);
+    for(let ey=-3; ey<=3; ey++) {
+        let py = baseMidY - ey * yScaleFactor;
+        ctx2.beginPath(); ctx2.moveTo(60, py); ctx2.lineTo(300, py); ctx2.stroke();
+    }
+    
+    ctx2.fillStyle = '#333';
+    ctx2.font = 'bold 12px sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.fillText("Allowed Energy States Manifold", 180, 132);
+    
+    // Draw the discrete lines inside the band chart
+    if(gap > 0) {
+        levels.forEach(e => {
+            let v_e = e * 0.5 - 0.5 * gap - 0.5;
+            let c_e = e * 0.5 + 0.5 * gap + 0.5;
+            
+            let py_v = baseMidY - v_e * yScaleFactor;
+            let py_c = baseMidY - c_e * yScaleFactor;
+            
+            // Conduction band line (Red)
+            ctx2.strokeStyle = '#e53e3e';
+            ctx2.lineWidth = 2;
+            ctx2.beginPath(); ctx2.moveTo(bandCenterX - bandWidth/2, py_c); ctx2.lineTo(bandCenterX + bandWidth/2, py_c); ctx2.stroke();
+            
+            // Valence band line (Green)
+            ctx2.strokeStyle = '#38a169';
+            ctx2.beginPath(); ctx2.moveTo(bandCenterX - bandWidth/2, py_v); ctx2.lineTo(bandCenterX + bandWidth/2, py_v); ctx2.stroke();
+        });
+        
+        ctx2.fillStyle = '#e53e3e'; ctx2.font = '10px sans-serif'; ctx2.fillText("Conduction Band", 180, baseMidY - 1.8*yScaleFactor);
+        ctx2.fillStyle = '#38a169'; ctx2.fillText("Valence Band", 180, baseMidY + 2.2*yScaleFactor);
+    } else {
+        levels.forEach(e => {
+            let py = baseMidY - e * yScaleFactor;
+            ctx2.strokeStyle = 'black';
+            ctx2.lineWidth = 2;
+            ctx2.beginPath(); ctx2.moveTo(bandCenterX - bandWidth/2, py); ctx2.lineTo(bandCenterX + bandWidth/2, py); ctx2.stroke();
+        });
+        ctx2.fillStyle = 'black'; ctx2.font = '10px sans-serif'; ctx2.fillText("Partially Filled Continuous Metal Band", 180, baseMidY + 5);
+    }
+    
+    // Axis Label for Subplot 2
+    ctx2.save();
+    ctx2.translate(45, baseMidY);
+    ctx2.rotate(-Math.PI/2);
+    ctx2.fillStyle = '#4a5568';
+    ctx2.font = '11px sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.fillText("Electron Energy (E)", 0, 0);
+    ctx2.restore();
+    
+    
+    // ----------------------------------------------------
+    // Subplot 3: Energy vs. Spacing Curves (Bottom Right)
+    // ----------------------------------------------------
+    const curveStartX = 420;
+    const curveWidth = 480;
+    
+    ctx2.strokeStyle = '#e2e8f0';
+    ctx2.lineWidth = 1;
+    ctx2.strokeRect(curveStartX, 140, curveWidth, 310);
+    
+    // Grid horizontal lines matching subplot 2
+    for(let ey=-3; ey<=3; ey++) {
+        let py = baseMidY - ey * yScaleFactor;
+        ctx2.beginPath(); ctx2.moveTo(curveStartX, py); ctx2.lineTo(curveStartX + curveWidth, py); ctx2.stroke();
+    }
+    
+    ctx2.fillStyle = '#333';
+    ctx2.font = 'bold 12px sans-serif';
+    ctx2.textAlign = 'center';
+    ctx2.fillText("Energy Bands vs. Spacing Curve", curveStartX + curveWidth/2, 132);
+    
+    // Map spatial input 'r' value to curve window X coordinate
+    function rToCurveX(rVal) {
+        // domain [1.0, 6.0] to pixel space [curveStartX, curveStartX + curveWidth]
+        return curveStartX + (rVal - 1.0) * (curveWidth / 5.0);
+    }
+    
+    // Draw envelope structures by scanning space
+    ctx2.save();
+    ctx2.lineWidth = 1.5;
+    
+    // Build background path arrays
+    let ptsTopC = [], ptsBotC = [], ptsTopV = [], ptsBotV = [];
+    let ptsSingleTop = [], ptsSingleBot = [];
+    
+    for(let rx=1.0; rx<=6.0; rx+=0.02) {
+        let cx = rToCurveX(rx);
+        let params = computePhysics(rx);
+        let t_val = params.t;
+        let g_val = params.gap;
+        
+        if(rx < 3.0) {
+            let tc = (2 * t_val) * 0.5 + 0.5 * g_val + 0.5;
+            let bc = (-2 * t_val) * 0.5 + 0.5 * g_val + 0.5;
+            let tv = (2 * t_val) * 0.5 - 0.5 * g_val - 0.5;
+            let bv = (-2 * t_val) * 0.5 - 0.5 * g_val - 0.5;
+            
+            ptsTopC.push({x: cx, y: baseMidY - tc*yScaleFactor});
+            ptsBotC.push({x: cx, y: baseMidY - bc*yScaleFactor});
+            ptsTopV.push({x: cx, y: baseMidY - tv*yScaleFactor});
+            ptsBotV.push({x: cx, y: baseMidY - bv*yScaleFactor});
+        } else {
+            let t_open = 2 * t_val;
+            ptsSingleTop.push({x: cx, y: baseMidY - t_open*yScaleFactor});
+            ptsSingleBot.push({x: cx, y: baseMidY - (-t_open)*yScaleFactor});
+        }
+    }
+    
+    // Helper function to fill area paths
+    function fillArea(topPath, botPath, color) {
+        ctx2.fillStyle = color;
+        ctx2.beginPath();
+        ctx2.moveTo(topPath[0].x, topPath[0].y);
+        for(let j=1; j<topPath.length; j++) ctx2.lineTo(topPath[j].x, topPath[j].y);
+        for(let j=botPath.length-1; j>=0; j--) ctx2.lineTo(botPath[j].x, botPath[j].y);
+        ctx2.closePath();
+        ctx2.fill();
+    }
+    
+    // Fill split regions
+    if(ptsTopC.length > 0) {
+        fillArea(ptsTopC, ptsBotC, 'rgba(229, 62, 98, 0.12)'); // Conduction fill
+        fillArea(ptsTopV, ptsBotV, 'rgba(56, 161, 105, 0.12)'); // Valence fill
+    }
+    
+    // Combine and build single merged continuous metal filling region boundary
+    if(ptsSingleTop.length > 0) {
+        ctx2.fillStyle = 'rgba(0,0,0,0.06)';
+        ctx2.beginPath();
+        // Add the cross-over points explicitly to anchor transition
+        let paramsSplitEdge = computePhysics(3.0);
+        let edgeYTop = baseMidY - (2*paramsSplitEdge.t)*yScaleFactor;
+        let edgeYBot = baseMidY - (-2*paramsSplitEdge.t)*yScaleFactor;
+        let edgeX = rToCurveX(3.0);
+        
+        ctx2.moveTo(edgeX, edgeYTop);
+        ptsSingleTop.forEach(p => ctx2.lineTo(p.x, p.y));
+        for(let j=ptsSingleBot.length-1; j>=0; j--) ctx2.lineTo(ptsSingleBot[j].x, ptsSingleBot[j].y);
+        ctx2.lineTo(edgeX, edgeYBot);
+        ctx2.closePath();
+        ctx2.fill();
+    }
+    
+    // Outline curve borders
+    function strokeCurve(path) {
+        if(!path || path.length === 0) return;
+        ctx2.beginPath();
+        ctx2.moveTo(path[0].x, path[0].y);
+        for(let j=1; j<path.length; j++) ctx2.lineTo(path[j].x, path[j].y);
+        ctx2.stroke();
+    }
+    ctx2.strokeStyle = 'rgba(0,0,0,0.25)';
+    strokeCurve(ptsTopC); strokeCurve(ptsBotC); strokeCurve(ptsTopV); strokeCurve(ptsBotV);
+    strokeCurve(ptsSingleTop); strokeCurve(ptsSingleBot);
+    ctx2.restore();
+    
+    // --- Current Spacing Tracker Line (Dynamic Blue Dash Indicator) ---
+    let currentCurveX = rToCurveX(r);
+    ctx2.strokeStyle = 'blue';
+    ctx2.lineWidth = 2;
+    ctx2.setLineDash([5, 5]);
+    ctx2.beginPath();
+    ctx2.moveTo(currentCurveX, 140);
+    ctx2.lineTo(currentCurveX, 450);
+    ctx2.stroke();
+    ctx2.setLineDash([]);
+    
+    // Subplot 3 Labels
+    ctx2.fillStyle = 'blue';
+    ctx2.font = '11px sans-serif';
+    ctx2.textAlign = 'left';
+    ctx2.fillText("Current Spacing (r₀)", currentCurveX + 8, 160);
+    
+    ctx2.fillStyle = '#4a5568';
+    ctx2.textAlign = 'center';
+    ctx2.fillText("Interatomic Distance (r)", curveStartX + curveWidth/2, 470);
+}
+
+slider2Atoms.addEventListener('input', drawSimulation2);
+slider2Dist.addEventListener('input', drawSimulation2);
+drawSimulation2();
+
+</script>
+</body>
+</html>
